@@ -4,8 +4,9 @@ import haversine
 import googlemaps
 import math
 import random
+import traceback
 
-def get_route(time_to_walk, walk_speed, location):
+def get_route(time_to_walk, walk_speed, location, regenerate=False):
     apikey = open('apikey', 'r').read() 
     gmaps = googlemaps.Client(key=apikey)
 
@@ -60,9 +61,17 @@ def get_route(time_to_walk, walk_speed, location):
             mse = (distance_from_user - approximate_radius) ** 2 * (5 - place['rating']) ** 2
 
             mse_places[mse] = place_id
-
-        best_place = places_nearby[mse_places[min(mse_places.keys())]]
-        return best_place
+        try:
+            if regenerate:
+                if len(places_nearby) == 1:
+                    return list(places_nearby.values())[0]
+                else:
+                    del mse_places[min(mse_places.keys())]
+                    return random.choice(list(places_nearby.values()))
+            else:
+                return places_nearby[mse_places[min(mse_places.keys())]]
+        except Exception as e:
+            traceback.print_exc()
 
     if len(places_nearby.items()) > 0:
         best_place = select_best_place(places_nearby)
@@ -72,8 +81,8 @@ def get_route(time_to_walk, walk_speed, location):
         centre_absolute_pos = ((user_1_absolute_pos[0] + best_place_absolute_pos[0]) / 2, (user_1_absolute_pos[1] + best_place_absolute_pos[1]) / 2)
         centre_pos = absolute_to_relative(centre_absolute_pos)
         
-        if haversine.haversine(user_1_absolute_pos, best_place_absolute_pos, unit=haversine.Unit.METERS) < 400:
-            return {'success': False, 'error': 'next_to_park'}
+        #if haversine.haversine(user_1_absolute_pos, best_place_absolute_pos, unit=haversine.Unit.METERS) < 400:
+        #    return {'success': False, 'error': 'next_to_park'}
 
         waypoints = []
 
@@ -122,6 +131,8 @@ def get_route(time_to_walk, walk_speed, location):
     steps_list = []
     actual_distance = 0
 
+    steps_list.append({'lat': legs[0]['steps'][0]['start_location']['lat'], 'lng': legs[0]['steps'][0]['start_location']['lng']})
+
     for leg in legs:
         actual_distance += leg['distance']['value']
         steps = leg['steps']
@@ -137,6 +148,7 @@ def get_route(time_to_walk, walk_speed, location):
 
             steps_list.append({'lat': step['end_location']['lat'], 'lng': step['end_location']['lng']})
         
+
 
     actual_time = actual_distance / walk_speed
 

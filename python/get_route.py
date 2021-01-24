@@ -10,11 +10,11 @@ def get_route(time_to_walk, walk_speed, location, regenerate=False):
     apikey = open('apikey', 'r').read() 
     gmaps = googlemaps.Client(key=apikey)
 
-    search_time = time_to_walk * 3/4
+    search_time = time_to_walk
 
     distance = search_time * walk_speed
 
-    approximate_radius = distance / math.pi / 2
+    approximate_radius = distance / 4
 
 
 
@@ -58,15 +58,18 @@ def get_route(time_to_walk, walk_speed, location, regenerate=False):
             # Find the most suitable park, closest to radius
             distance_from_user = haversine.haversine(user_1_absolute_pos, (place_lat, place_lng), unit=haversine.Unit.METERS)
 
-            mse = (distance_from_user - approximate_radius) ** 2 * (5 - place['rating']) ** 2
+            mse = (distance_from_user - approximate_radius) ** 2# * (5 - place['rating'])
 
             mse_places[mse] = place_id
         try:
             if regenerate:
+                print(len(places_nearby))
                 if len(places_nearby) == 1:
                     return list(places_nearby.values())[0]
                 else:
-                    del mse_places[min(mse_places.keys())]
+                    print(min(mse_places.keys()))
+                    places_nearby.pop(mse_places[min(mse_places.keys())])
+                    print(len(places_nearby))
                     return random.choice(list(places_nearby.values()))
             else:
                 return places_nearby[mse_places[min(mse_places.keys())]]
@@ -80,9 +83,6 @@ def get_route(time_to_walk, walk_speed, location, regenerate=False):
 
         centre_absolute_pos = ((user_1_absolute_pos[0] + best_place_absolute_pos[0]) / 2, (user_1_absolute_pos[1] + best_place_absolute_pos[1]) / 2)
         centre_pos = absolute_to_relative(centre_absolute_pos)
-        
-        #if haversine.haversine(user_1_absolute_pos, best_place_absolute_pos, unit=haversine.Unit.METERS) < 400:
-        #    return {'success': False, 'error': 'next_to_park'}
 
         waypoints = []
 
@@ -96,8 +96,10 @@ def get_route(time_to_walk, walk_speed, location, regenerate=False):
             qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
             return (qx, qy)
 
-        wp1 = rotate(midpoint, best_place_pos, math.pi/2)
-        wp2 = rotate(midpoint, best_place_pos, 3*math.pi/2)
+
+
+        wp1 = rotate(midpoint, best_place_pos, random.uniform(math.pi * 0.3, math.pi * 0.7))
+        wp2 = rotate(midpoint, best_place_pos, random.uniform(math.pi * 1.3, math.pi * 1.7))
 
         wp1 = ((wp1[0] + midpoint[0]) / 2, (wp1[1] + midpoint[1]) / 2)
         wp2 = ((wp2[0] + midpoint[0]) / 2, (wp2[1] + midpoint[1]) / 2)
@@ -123,12 +125,13 @@ def get_route(time_to_walk, walk_speed, location, regenerate=False):
             return {'success': False, 'error': 'no_parks_within_distance'}
 
 
-
+    steps_list = []
 
     route = directions[0]
     legs = route['legs']
 
-    steps_list = []
+    points_to_snap = []
+
     actual_distance = 0
 
     steps_list.append({'lat': legs[0]['steps'][0]['start_location']['lat'], 'lng': legs[0]['steps'][0]['start_location']['lng']})
@@ -147,9 +150,7 @@ def get_route(time_to_walk, walk_speed, location, regenerate=False):
 
 
             steps_list.append({'lat': step['end_location']['lat'], 'lng': step['end_location']['lng']})
-        
-
-
+            
     actual_time = actual_distance / walk_speed
 
     centre_pos = {'lat': centre_absolute_pos[0], 'lng': centre_absolute_pos[1]}

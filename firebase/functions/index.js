@@ -48,7 +48,7 @@ exports.addWalk = functions.firestore.document('walks/{walkId}')
 
         axios.post('http://34.70.169.255/get_route', data)
             .then(res => {
-                print(res);
+                console.log(res);
                 db.collection('walks').doc(snap.id).update({ 'response': res.data });
 
             })
@@ -96,6 +96,16 @@ exports.calendarSlot = functions.firestore.document('calendar_slots/{calendarSlo
         return 0;
     });
 
+    function ISODateString(d){
+        function pad(n){return n<10 ? '0'+n : n}
+        return d.getUTCFullYear()+'-'
+             + pad(d.getUTCMonth()+1)+'-'
+             + pad(d.getUTCDate())+'T'
+             + pad(d.getUTCHours())+':'
+             + pad(d.getUTCMinutes())+':'
+             + pad(d.getUTCSeconds())+'Z'}
+       
+
 exports.calendarAdd = functions.firestore.document('calendar_add/{eventId}')
     .onCreate((snap, context) => {
         const data = snap.data();
@@ -104,12 +114,13 @@ exports.calendarAdd = functions.firestore.document('calendar_add/{eventId}')
         auth.setCredentials({ access_token: data.access_token });
 
         const calendar = google.calendar({ version: 'v3', auth });
-        console.log(data)
+         
         if (data['event'] === undefined) {
             db.collection('calendar_add').doc(snap.id).update({ 'response': { 'success': false, 'error': 'No event' } });
         } else {
             data['event']['calendarId'] = 'primary';
             console.log(data);
+
             calendar.events.insert(data['event'], (err, res) => {
                 if (err) {
                     db.collection('calendar_add').doc(snap.id).update({ 'response': { 'success': false, 'error': err.message } });

@@ -6,7 +6,7 @@ import math
 import random
 
 def get_route(time_to_walk, walk_speed, location):
-    apikey = 'AIzaSyBYHBe60y6BUSj9_SrVkrZqIOLMG6uNBYM'
+    apikey = open('apikey', 'r').read() 
     gmaps = googlemaps.Client(key=apikey)
 
     search_time = time_to_walk * 3/4
